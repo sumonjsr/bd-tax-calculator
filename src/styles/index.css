@@ -1,0 +1,58 @@
+@import "tailwindcss";
+
+/*
+  Design system — Bangladesh Tax Calculator
+  ------------------------------------------
+  Palette draws from ledger paper, pressed brass, and deep paddy-field green
+  rather than a generic fintech gradient. Figures are always set in a
+  tabular monospace so tax numbers align like a real statement.
+*/
+@theme {
+  --color-ink: #0f2b22;        /* primary dark surface */
+  --color-ink-soft: #17392d;   /* raised dark surface */
+  --color-paper: #f2efe4;      /* light surface / dark-on-light text */
+  --color-paper-dim: #e6e1d0;  /* muted light surface */
+  --color-gold: #c99a3d;       /* primary accent — CTAs, emphasis */
+  --color-gold-soft: #e4c374;
+  --color-brick: #a3432b;      /* secondary accent — used sparingly */
+  --color-sage: #3a5347;       /* hairlines, borders, quiet text on dark */
+  --color-mint: #8fbfa8;       /* data highlights, success/positive figures */
+
+  --font-display: "IBM Plex Serif", "Noto Serif Bengali", serif;
+  --font-body: "IBM Plex Sans", "Noto Sans Bengali", sans-serif;
+  --font-data: "IBM Plex Mono", monospace;
+}
+
+html {
+  scroll-behavior: smooth;
+}
+
+body {
+  background-color: var(--color-paper);
+  color: var(--color-ink);
+  font-family: var(--font-body);
+}
+
+.font-display {
+  font-family: var(--font-display);
+}
+
+.font-data {
+  font-family: var(--font-data);
+  font-variant-numeric: tabular-nums;
+}
+
+/* Visible focus ring for keyboard navigation — never suppressed */
+:focus-visible {
+  outline: 2px solid var(--color-gold);
+  outline-offset: 2px;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  * {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+    scroll-behavior: auto !important;
+  }
+}
