@@ -219,3 +219,60 @@ describe("non-resident taxpayer", () => {
     expect(result.taxBeforeRebate).toBeCloseTo(180_000, 5);
   });
 });
+
+describe("wealth surcharge", () => {
+  const salary = {
+    basicSalary: 3_000_000,
+    houseRentAllowance: 0,
+    medicalAllowance: 0,
+    conveyanceAllowance: 0,
+    festivalBonus: 0,
+    performanceBonus: 0,
+    otherAllowances: 0,
+    employerBenefits: 0,
+    providentFundIncome: 0,
+    gratuity: 0,
+    pension: 0,
+    otherEmploymentBenefits: 0,
+    tdsDeducted: 0,
+  };
+
+  it("applies no surcharge at or below 4 crore net wealth, even with multiple vehicles", () => {
+    const result = calculateTax({
+      profile: { ...baseProfile, netWealth: 40_000_000, motorVehicleCount: 3 },
+      salaryIncome: salary,
+    });
+    expect(result.surcharge).toBe(0);
+  });
+
+  it("applies 10% surcharge on tax-after-rebate in the 4-10 crore band", () => {
+    const result = calculateTax({
+      profile: { ...baseProfile, netWealth: 60_000_000 },
+      salaryIncome: salary,
+      investmentRebateItems: [{ category: "dps", amount: 120_000 }],
+    });
+    // taxBeforeRebate 415,000; rebate = min(75000, 12000, 750000) = 12,000
+    // taxAfterRebate = 403,000; surcharge = 10% * 403,000 = 40,300
+    expect(result.taxAfterRebate).toBe(403_000);
+    expect(result.surcharge).toBeCloseTo(40_300, 5);
+  });
+
+  it("applies 35% surcharge above 50 crore net wealth", () => {
+    const result = calculateTax({
+      profile: { ...baseProfile, netWealth: 600_000_000 },
+      salaryIncome: salary,
+    });
+    expect(result.surcharge).toBeCloseTo(415_000 * 0.35, 5);
+  });
+
+  it("flags Environmental Surcharge as an advisory note without calculating it", () => {
+    const result = calculateTax({
+      profile: { ...baseProfile, netWealth: 10_000_000, motorVehicleCount: 2 },
+      salaryIncome: salary,
+    });
+    expect(result.surcharge).toBe(0); // wealth surcharge unaffected
+    expect(result.advisoryNotes.some((n) => /environmental surcharge/i.test(n))).toBe(
+      true,
+    );
+  });
+});

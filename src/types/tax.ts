@@ -178,5 +178,9 @@ export interface TaxCalculationResult {
   taxPayable: number;
   refundDue: number;
   advanceTaxInstallmentRequired: boolean;
+  /** Non-calculated advisory flags — e.g. Environmental Surcharge,
+   * which is a separate per-vehicle tax this engine does not compute
+   * (no rate supplied yet) but which may still apply to the taxpayer. */
+  advisoryNotes: string[];
   steps: TaxCalculationStep[];
 }

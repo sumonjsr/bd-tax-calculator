@@ -47,6 +47,16 @@ export function calculateTaxPayable(
 
   const netPosition = finalTaxLiability - totalCreditsApplied;
 
+  const advisoryNotes: string[] = [];
+  if ((input.profile.motorVehicleCount ?? 0) > 1) {
+    advisoryNotes.push(
+      "You own more than one motor vehicle: a separate Environmental " +
+        "Surcharge (paid at vehicle registration or via return) may apply " +
+        "regardless of net wealth. This is distinct from Wealth Surcharge " +
+        "and is not included in the figures above — rate not yet configured.",
+    );
+  }
+
   return {
     assessmentYear: rules.assessmentYear,
     grossIncome: income.grossIncome,
@@ -65,6 +75,7 @@ export function calculateTaxPayable(
     taxPayable: Math.max(netPosition, 0),
     refundDue: Math.max(-netPosition, 0),
     advanceTaxInstallmentRequired: finalTaxLiability > rules.advanceTax.liabilityThreshold,
+    advisoryNotes,
     steps: [
       { label: "Gross income", amount: income.grossIncome },
       { label: "Total taxable income", amount: income.totalTaxableIncome },

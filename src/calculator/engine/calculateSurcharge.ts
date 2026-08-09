@@ -8,26 +8,31 @@ export interface SurchargeResult {
 }
 
 /**
- * Net-wealth-based surcharge on tax liability.
+ * Net-wealth-based Wealth Surcharge on Net Tax Payable.
  *
- * PENDING CONFIRMATION from the owner (see 2026-2027/index.ts):
- *   1. Whether ">1 motor vehicle OR >8,000 sq ft residential property"
- *      is an independent trigger below the 4-crore wealth threshold,
- *      or just explanatory context for the 4-10 crore band. Not
- *      applied independently here.
- *   2. Whether surcharge applies to tax BEFORE or AFTER the investment
- *      rebate — this function takes `taxBase` as a parameter rather
- *      than deciding; the caller currently passes tax AFTER rebate.
+ * CONFIRMED (Section 166 / Finance Act 2026, First Schedule):
+ *   - Computed on tax AFTER the investment rebate — `taxBase` here is
+ *     always taxAfterRebate, passed in by the caller.
+ *   - Below 4 crore net wealth: always 0%, regardless of vehicle or
+ *     property count.
+ *   - 4-10 crore band: uniform 10% regardless of the vehicle/property
+ *     condition (that condition is just a same-rate floor clause
+ *     inside this band, so it needs no separate handling here).
+ *
+ * OUT OF SCOPE: "Environmental Surcharge" is a separate, per-vehicle
+ * tax that can apply even below the 4-crore threshold. It is NOT
+ * Wealth Surcharge and must never be folded into this function's
+ * output — see calculateTaxPayable.ts for where it's flagged instead.
  */
 export function calculateSurcharge(
-  taxBase: number,
+  taxAfterRebate: number,
   profile: TaxpayerProfile,
   rules: TaxRuleConfig,
 ): SurchargeResult {
   const netWealth = profile.netWealth ?? 0;
 
   const band = rules.surcharge.bands.find(
-    (b) => netWealth >= b.minNetWealth && (b.maxNetWealth == null || netWealth < b.maxNetWealth),
+    (b) => netWealth >= b.minNetWealth && (b.maxNetWealth == null || netWealth <= b.maxNetWealth),
   );
 
   if (!band) {
@@ -36,7 +41,7 @@ export function calculateSurcharge(
 
   return {
     applicableRate: band.rate,
-    surchargeAmount: Math.max(taxBase, 0) * band.rate,
+    surchargeAmount: Math.max(taxAfterRebate, 0) * band.rate,
     note: band.note,
   };
 }

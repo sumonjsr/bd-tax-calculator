@@ -8,17 +8,25 @@ import type { TaxRuleConfig } from "../types";
  * Income Tax Act 2023 (Act No. XII of 2023), as supplied by the site
  * owner.
  *
- * KNOWN OPEN QUESTIONS (do not resolve these silently — confirm with
- * the owner before relying on surcharge figures produced from this
- * config):
- *   1. Whether the ">1 motor vehicle OR >8,000 sq ft residential
- *      property" note on the 4-10 crore surcharge band is just
- *      explanatory context, or an independent trigger that can apply
- *      even below the 4-crore net-wealth threshold.
- *   2. Whether surcharge is computed on tax BEFORE or AFTER the
- *      investment rebate is applied. This config currently computes
- *      it on tax AFTER rebate — see calculateSurcharge.ts — pending
- *      confirmation.
+ * SURCHARGE RULES — CONFIRMED (per owner clarification citing Section
+ * 166 and the Finance Act 2026 First Schedule):
+ *   1. The ">1 motor vehicle OR >8,000 sq ft residential property"
+ *      condition is a floor/minimum-rate clause that only applies
+ *      *within* the 4-10 crore net-wealth band, where the rate is
+ *      already a uniform 10% either way — it is NOT an independent
+ *      trigger below the 4-crore threshold. Below 4 crore, surcharge
+ *      is always 0% regardless of vehicle/property count.
+ *   2. Surcharge is computed on Net Tax Payable — i.e. tax AFTER the
+ *      investment rebate is applied. See calculateSurcharge.ts.
+ *
+ * OUT OF SCOPE — NOT IMPLEMENTED: "Environmental Surcharge" is a
+ * separate, per-motor-vehicle tax (paid at vehicle registration or via
+ * the return) that applies even when net wealth is under 4 crore if
+ * the taxpayer owns multiple vehicles. It is legally distinct from
+ * Wealth Surcharge and must never be added into the wealth-surcharge
+ * figure. No rate/amount has been supplied for it yet, so it is not
+ * calculated anywhere in this engine — only flagged as an advisory
+ * note when relevant (see calculateTaxPayable.ts).
  */
 const rules2026_2027: TaxRuleConfig = {
   assessmentYear: "2026-2027",
@@ -108,9 +116,9 @@ const rules2026_2027: TaxRuleConfig = {
         maxNetWealth: 100_000_000,
         rate: 0.1,
         note:
-          "Guideline also references a trigger of >1 motor vehicle OR " +
-          ">8,000 sq ft residential property in this band — not yet " +
-          "confirmed with the owner; not applied independently by the engine.",
+          "Confirmed: >1 motor vehicle or >8,000 sq ft residential property " +
+          "acts as a floor within this band, but the band rate is already " +
+          "a uniform 10% either way — no separate handling needed.",
       },
       { minNetWealth: 100_000_000, maxNetWealth: 200_000_000, rate: 0.2 },
       { minNetWealth: 200_000_000, maxNetWealth: 500_000_000, rate: 0.3 },
