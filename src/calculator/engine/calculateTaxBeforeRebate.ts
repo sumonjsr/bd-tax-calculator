@@ -1,9 +1,80 @@
+import type { TaxpayerProfile } from "../../types/tax";
+import type { ThresholdCategory, TaxRuleConfig } from "../rules/types";
+
+export interface ThresholdResolution {
+  category: ThresholdCategory;
+  threshold: number;
+}
+
 /**
- * calculateTaxBeforeRebate
- *
- * Phase 1 scaffold only — no calculation logic yet. This file exists
- * to establish the engine's file layout ahead of Phase 4, when the
- * owner-supplied Bangladesh tax rules are implemented here. Do not
- * add formulas or thresholds to this file from memory or assumption.
+ * A taxpayer can qualify for more than one threshold category at once
+ * (e.g. a disabled female taxpayer). Per the owner's confirmed rule,
+ * the engine always applies whichever qualifying threshold is highest.
  */
-export {};
+export function resolveThreshold(
+  profile: TaxpayerProfile,
+  rules: TaxRuleConfig,
+): ThresholdResolution {
+  const candidates: ThresholdCategory[] = ["general"];
+
+  if (profile.gender === "female" || profile.age >= 65) {
+    candidates.push("female-or-senior");
+  }
+  if (profile.gender === "third-gender") {
+    candidates.push("third-gender");
+  }
+  if (profile.isDisabled) {
+    candidates.push("disabled");
+  }
+  if (profile.isFreedomFighter) {
+    candidates.push("freedom-fighter");
+  }
+
+  const best = candidates.reduce((highest, category) =>
+    rules.taxFreeThresholds[category] > rules.taxFreeThresholds[highest]
+      ? category
+      : highest,
+  );
+
+  const disabledChildAllowance =
+    (profile.disabledChildrenCount ?? 0) * rules.disabledChildAllowance;
+
+  return {
+    category: best,
+    threshold: rules.taxFreeThresholds[best] + disabledChildAllowance,
+  };
+}
+
+export interface TaxBeforeRebateResult {
+  thresholdApplied: ThresholdResolution;
+  taxBeforeRebate: number;
+}
+
+export function calculateTaxBeforeRebate(
+  taxableIncome: number,
+  profile: TaxpayerProfile,
+  rules: TaxRuleConfig,
+): TaxBeforeRebateResult {
+  if (profile.residentialStatus === "non-resident") {
+    return {
+      thresholdApplied: { category: "general", threshold: 0 },
+      taxBeforeRebate: Math.max(taxableIncome, 0) * rules.nonResidentFlatRate,
+    };
+  }
+
+  const thresholdApplied = resolveThreshold(profile, rules);
+  let remaining = Math.max(taxableIncome - thresholdApplied.threshold, 0);
+  let tax = 0;
+
+  for (const band of rules.incomeTaxSlabBands) {
+    if (remaining <= 0) break;
+    const bandAmount =
+      band.widthAboveThreshold == null
+        ? remaining
+        : Math.min(remaining, band.widthAboveThreshold);
+    tax += bandAmount * band.rate;
+    remaining -= bandAmount;
+  }
+
+  return { thresholdApplied, taxBeforeRebate: tax };
+}

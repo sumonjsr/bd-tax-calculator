@@ -1,17 +1,8 @@
 import type { AssessmentYear } from "../../types/tax";
 import type { TaxRuleConfig } from "./types";
-import rules2025_2026 from "./2025-2026";
 import rules2026_2027 from "./2026-2027";
 
-/**
- * Central registry of assessment-year rule configs.
- *
- * Adding a new year should mean: create src/calculator/rules/<year>/index.ts
- * exporting a TaxRuleConfig, then register it here. The engine itself
- * (src/calculator/engine) never needs to change.
- */
 const ruleRegistry: Record<AssessmentYear, TaxRuleConfig | null> = {
-  "2025-2026": rules2025_2026,
   "2026-2027": rules2026_2027,
 };
 

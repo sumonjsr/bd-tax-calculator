@@ -1,9 +1,28 @@
+import type { TaxpayerProfile } from "../../types/tax";
+import type { TaxRuleConfig } from "../rules/types";
+
+export interface MinimumTaxResult {
+  applicableMinimumTax: number;
+}
+
 /**
- * calculateMinimumTax
- *
- * Phase 1 scaffold only — no calculation logic yet. This file exists
- * to establish the engine's file layout ahead of Phase 4, when the
- * owner-supplied Bangladesh tax rules are implemented here. Do not
- * add formulas or thresholds to this file from memory or assumption.
+ * Section 166: a flat minimum tax applies to any individual taxpayer
+ * whose taxable income exceeds their tax-free threshold — BDT 5,000
+ * standard, or BDT 1,000 for first-time return filers.
  */
-export {};
+export function calculateMinimumTax(
+  taxableIncome: number,
+  taxFreeThreshold: number,
+  profile: TaxpayerProfile,
+  rules: TaxRuleConfig,
+): MinimumTaxResult {
+  if (taxableIncome <= taxFreeThreshold) {
+    return { applicableMinimumTax: 0 };
+  }
+
+  return {
+    applicableMinimumTax: profile.isFirstTimeFiler
+      ? rules.minimumTax.firstTimeFiler
+      : rules.minimumTax.standard,
+  };
+}

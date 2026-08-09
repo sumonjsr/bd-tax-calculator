@@ -1,9 +1,27 @@
+import type { FinancialAssetIncome } from "../../types/tax";
+
+export interface FinancialAssetIncomeResult {
+  totalTaxableIncome: number;
+  totalTdsDeducted: number;
+}
+
 /**
- * calculateFinancialAssetIncome
- *
- * Phase 1 scaffold only — no calculation logic yet. This file exists
- * to establish the engine's file layout ahead of Phase 4, when the
- * owner-supplied Bangladesh tax rules are implemented here. Do not
- * add formulas or thresholds to this file from memory or assumption.
+ * Per the guideline (Section 7.1): TDS on Sanchayapatra interest, bank
+ * deposit interest, and capital gains is non-final (adjustable
+ * advance tax) — meaning the underlying income is fully taxable at
+ * slab rates, and the TDS is only a credit against final liability.
  */
-export {};
+export function calculateFinancialAssetIncome(
+  income: FinancialAssetIncome,
+): FinancialAssetIncomeResult {
+  const totalTaxableIncome =
+    income.bankInterest +
+    income.savingsCertificateIncome +
+    income.fixedDepositIncome +
+    income.governmentSecurities +
+    income.bondsAndDebentures +
+    income.dividend +
+    income.otherFinancialAssetIncome;
+
+  return { totalTaxableIncome, totalTdsDeducted: income.tdsDeducted };
+}
