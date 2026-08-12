@@ -8,6 +8,13 @@ import { calculateMinimumTax } from "./calculateMinimumTax";
 import { calculateTDSCredit } from "./calculateTDSCredit";
 import { calculateAdvanceTaxCredit } from "./calculateAdvanceTaxCredit";
 
+/**
+ * Runs the full pipeline and assembles the final result, including the
+ * step-by-step explanation shown on the results screen.
+ *
+ * NOTE on surcharge base: computed on tax AFTER the investment rebate.
+ * This is not yet confirmed with the owner — see calculateSurcharge.ts.
+ */
 export function calculateTaxPayable(
   input: TaxCalculationInput,
   rules: TaxRuleConfig,
@@ -31,17 +38,20 @@ export function calculateTaxPayable(
   const surcharge = calculateSurcharge(taxAfterRebate, input.profile, rules);
   const taxWithSurcharge = taxAfterRebate + surcharge.surchargeAmount;
 
-  const { applicableMinimumTax } = calculateMinimumTax(
+  const minimumTaxResult = calculateMinimumTax(
     income.totalTaxableIncome,
     thresholdApplied.threshold,
     input.profile,
     rules,
+    income.businessGrossTurnover,
   );
+  const applicableMinimumTax = minimumTaxResult.applicableMinimumTax;
 
   const finalTaxLiability = Math.max(taxWithSurcharge, applicableMinimumTax);
 
   const tdsCredit = calculateTDSCredit(income.totalTdsFromIncomeHeads, input.credits);
-  const advanceTaxCredit = calculateAdvanceTaxCredit(input.credits);
+  const advanceTaxCredit =
+    calculateAdvanceTaxCredit(input.credits) + income.totalAdvanceTaxFromIncomeHeads;
   const otherCredits = input.credits?.otherEligibleCredits ?? 0;
   const totalCreditsApplied = tdsCredit + advanceTaxCredit + otherCredits;
 
@@ -91,8 +101,12 @@ export function calculateTaxPayable(
         note: `Eligible investment: ${eligibleInvestmentAmount}`,
       },
       { label: "Tax after rebate", amount: taxAfterRebate },
-      { label: "Surcharge", amount: surcharge.surchargeAmount, note: surcharge.note },
-      { label: "Minimum tax check", amount: applicableMinimumTax },
+      {
+        label: "Surcharge",
+        amount: surcharge.surchargeAmount,
+        note: surcharge.note,
+      },
+      { label: "Minimum tax check", amount: applicableMinimumTax, note: minimumTaxResult.note },
       { label: "Final tax liability", amount: finalTaxLiability },
       { label: "TDS credit", amount: -tdsCredit },
       { label: "Advance tax credit", amount: -advanceTaxCredit },

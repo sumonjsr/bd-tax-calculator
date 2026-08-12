@@ -9,8 +9,8 @@ export interface TaxRebateResult {
 /**
  * Sixth Schedule, Part 3: caps eligible investment per category (e.g.
  * life insurance at 10% of sum assured, DPS at BDT 1,20,000/year),
- * then applies: min(3% of taxable income, 10% of eligible investment,
- * BDT 7,50,000).
+ * then applies the three-way rebate formula:
+ *   min(3% of taxable income, 10% of eligible investment, BDT 7,50,000)
  */
 export function calculateTaxRebate(
   items: InvestmentRebateItem[],
@@ -23,7 +23,7 @@ export function calculateTaxRebate(
 
   const eligibleInvestmentAmount = items.reduce((sum, item) => {
     const rule = categoryRules.get(item.category);
-    if (!rule) return sum;
+    if (!rule) return sum; // unrecognized category — not eligible
 
     let eligible = item.amount;
 

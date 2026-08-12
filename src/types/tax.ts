@@ -5,8 +5,15 @@
  * engine. The engine must never be called with anything other than these
  * shapes, and the UI must never compute tax itself — see
  * `src/calculator/engine` and `src/calculator/rules`.
+ *
+ * NOTE: This is Phase 1 scaffolding. Field lists are intentionally close
+ * to the categories in the master brief, but nothing here encodes an
+ * actual tax rule, rate, or threshold — those arrive in Phase 3 as
+ * assessment-year rule configs once official figures are supplied.
  */
 
+/** ISO-ish assessment year key, e.g. "2025-2026". Must match a folder
+ * under src/calculator/rules/. */
 export type AssessmentYear = string;
 
 export type Gender = "male" | "female" | "third-gender" | "prefer-not-to-say";
@@ -62,17 +69,16 @@ export interface HousePropertyIncome {
   tdsDeducted: number;
 }
 
+/** Business/Profession income — Sole Proprietorship only (individually
+ * owned business; not a company or partnership, which file separate
+ * entity-level returns and are out of scope for this calculator).
+ *
+ * Simplified to two inputs: Net Profit Before Tax = grossTurnover -
+ * totalExpense (can be negative — a business loss). */
 export interface BusinessIncome {
-  grossReceipts: number;
-  costOfGoodsSold: number;
-  operatingExpenses: number;
-  salaryAndWages: number;
-  rent: number;
-  utilities: number;
-  depreciation: number;
-  interest: number;
-  otherAllowableExpenses: number;
-  disallowedExpenses: number;
+  grossTurnover: number;
+  /** All-inclusive total business expense for the year. */
+  totalExpense: number;
   tdsDeducted: number;
   advanceTaxPaid: number;
 }
@@ -139,6 +145,10 @@ export interface TaxCredits {
   otherEligibleCredits: number;
 }
 
+/** The full input model handed to the tax engine. Every field beyond
+ * `profile` is optional / defaults to an empty array so the UI can send
+ * only the sections the taxpayer actually filled in (progressive
+ * disclosure per Section 6 of the brief). */
 export interface TaxCalculationInput {
   profile: TaxpayerProfile;
   salaryIncome?: SalaryIncome;
@@ -154,6 +164,9 @@ export interface TaxCalculationInput {
   credits?: TaxCredits;
 }
 
+/** Line-by-line breakdown returned alongside the final number so the
+ * result screen can render an explanation instead of a bare figure
+ * (Section 21 of the brief). */
 export interface TaxCalculationStep {
   label: string;
   amount: number;
@@ -165,6 +178,9 @@ export interface TaxCalculationResult {
   grossIncome: number;
   exemptIncome: number;
   totalTaxableIncome: number;
+  /** Which tax-free-threshold category was actually applied — reported
+   * explicitly because a taxpayer can qualify for more than one, and
+   * the engine always applies whichever is most favorable. */
   thresholdCategoryApplied: string;
   taxFreeThresholdApplied: number;
   taxBeforeRebate: number;
@@ -177,6 +193,8 @@ export interface TaxCalculationResult {
   totalCreditsApplied: number;
   taxPayable: number;
   refundDue: number;
+  /** True if estimated tax liability exceeds the advance-tax
+   * threshold (BDT 6,00,000) — informational only, not a deduction. */
   advanceTaxInstallmentRequired: boolean;
   /** Non-calculated advisory flags — e.g. Environmental Surcharge,
    * which is a separate per-vehicle tax this engine does not compute

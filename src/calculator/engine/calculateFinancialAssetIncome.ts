@@ -9,7 +9,8 @@ export interface FinancialAssetIncomeResult {
  * Per the guideline (Section 7.1): TDS on Sanchayapatra interest, bank
  * deposit interest, and capital gains is non-final (adjustable
  * advance tax) — meaning the underlying income is fully taxable at
- * slab rates, and the TDS is only a credit against final liability.
+ * slab rates, and the TDS is only a credit against final liability,
+ * not a substitute for it. So the full gross amount is included here.
  */
 export function calculateFinancialAssetIncome(
   income: FinancialAssetIncome,

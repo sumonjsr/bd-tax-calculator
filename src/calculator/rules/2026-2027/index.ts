@@ -131,6 +131,16 @@ const rules2026_2027: TaxRuleConfig = {
     firstTimeFiler: 1_000,
   },
 
+  business: {
+    // Owner-confirmed (superseding an earlier 0.6% draft): 1% of gross
+    // turnover for Sole Proprietorship business income. Applies
+    // (compared against the standard/first-time-filer minimum tax,
+    // whichever is higher) whenever combined income falls into
+    // minimum-tax territory — including when the business itself is
+    // at a loss. See calculateMinimumTax.ts.
+    minimumTaxRateOnTurnover: 0.01,
+  },
+
   advanceTax: {
     liabilityThreshold: 600_000,
     installments: 4,

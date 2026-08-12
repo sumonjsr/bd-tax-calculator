@@ -25,27 +25,12 @@ describe("tax rule registry", () => {
 });
 
 describe("unsupported income categories", () => {
-  it("refuses to calculate when business income is present", () => {
+  it("refuses to calculate when agricultural income is present", () => {
     const input: TaxCalculationInput = {
       profile: baseProfile,
-      business: [
-        {
-          grossReceipts: 1_000_000,
-          costOfGoodsSold: 0,
-          operatingExpenses: 0,
-          salaryAndWages: 0,
-          rent: 0,
-          utilities: 0,
-          depreciation: 0,
-          interest: 0,
-          otherAllowableExpenses: 0,
-          disallowedExpenses: 0,
-          tdsDeducted: 0,
-          advanceTaxPaid: 0,
-        },
-      ],
+      agricultural: [{ grossIncome: 500_000, allowableExpenses: 0, tdsDeducted: 0 }],
     };
-    expect(() => calculateTax(input)).toThrow(/business.*profession/i);
+    expect(() => calculateTax(input)).toThrow(/agricultural/i);
   });
 });
 
@@ -78,6 +63,7 @@ describe("salary income below threshold", () => {
         tdsDeducted: 0,
       },
     });
+    // gross 400,000 - exempt min(400000/3, 500000) = 400000 - 133333.33 = 266,666.67
     expect(result.totalTaxableIncome).toBeCloseTo(266_666.67, 1);
     expect(result.taxBeforeRebate).toBe(0);
     expect(result.thresholdCategoryApplied).toBe("general");
@@ -104,6 +90,14 @@ describe("salary income across multiple slabs", () => {
         tdsDeducted: 200_000,
       },
     });
+    // gross 3,000,000; exempt = min(1,000,000, 500,000) = 500,000
+    // taxable = 2,500,000
+    // threshold 400,000 -> remaining 2,100,000
+    //   300,000 @10% = 30,000
+    //   400,000 @15% = 60,000
+    //   500,000 @20% = 100,000
+    //   remaining 900,000 @25% = 225,000
+    // total = 415,000
     expect(result.totalTaxableIncome).toBe(2_500_000);
     expect(result.taxBeforeRebate).toBe(415_000);
     expect(result.totalCreditsApplied).toBe(200_000);
@@ -139,6 +133,7 @@ describe("female / senior threshold", () => {
     const result = calculateTax({
       profile: { ...baseProfile, gender: "female", isDisabled: true },
     });
+    // female-or-senior: 450,000 vs disabled: 525,000 -> disabled wins
     expect(result.thresholdCategoryApplied).toBe("disabled");
     expect(result.taxFreeThresholdApplied).toBe(525_000);
   });
@@ -165,6 +160,9 @@ describe("investment rebate", () => {
       },
       investmentRebateItems: [{ category: "dps", amount: 200_000 }],
     });
+    // taxable income 2,500,000; tax before rebate 415,000
+    // eligible investment = min(200000, 120000) = 120,000
+    // rebate = min(3%*2,500,000=75,000, 10%*120,000=12,000, 750,000) = 12,000
     expect(result.investmentRebate).toBe(12_000);
     expect(result.taxAfterRebate).toBe(403_000);
   });
@@ -190,6 +188,8 @@ describe("minimum tax", () => {
         tdsDeducted: 0,
       },
     });
+    // gross 405,000; exempt min(135000, 500000)=135000; taxable=270,000
+    // taxable (270,000) < threshold (400,000) -> minimum tax should NOT apply
     expect(result.totalTaxableIncome).toBeLessThan(400_000);
     expect(result.minimumTax).toBe(0);
   });
@@ -215,6 +215,7 @@ describe("non-resident taxpayer", () => {
         tdsDeducted: 0,
       },
     });
+    // gross 900,000; exempt min(300000,500000)=300000; taxable=600,000
     expect(result.totalTaxableIncome).toBe(600_000);
     expect(result.taxBeforeRebate).toBeCloseTo(180_000, 5);
   });
@@ -274,5 +275,96 @@ describe("wealth surcharge", () => {
     expect(result.advisoryNotes.some((n) => /environmental surcharge/i.test(n))).toBe(
       true,
     );
+  });
+});
+
+describe("business income (Sole Proprietorship)", () => {
+  it("computes net profit as turnover minus total expense and combines it with other income", () => {
+    const result = calculateTax({
+      profile: baseProfile,
+      business: [
+        { grossTurnover: 2_000_000, totalExpense: 1_200_000, tdsDeducted: 20_000, advanceTaxPaid: 30_000 },
+      ],
+    });
+    // netProfit = 2,000,000 - 1,200,000 = 800,000
+    // threshold 400,000 -> remaining 400,000: 300,000@10%=30,000; 100,000@15%=15,000 => 45,000
+    expect(result.totalTaxableIncome).toBe(800_000);
+    expect(result.taxBeforeRebate).toBe(45_000);
+    expect(result.totalCreditsApplied).toBe(50_000); // 20,000 TDS + 30,000 advance
+  });
+
+  it("applies the 1% turnover minimum tax when it exceeds the standard minimum", () => {
+    const result = calculateTax({
+      profile: baseProfile,
+      business: [
+        // Small profit, large turnover -> turnover minimum tax should bind
+        { grossTurnover: 2_000_000, totalExpense: 1_990_000, tdsDeducted: 0, advanceTaxPaid: 0 },
+      ],
+    });
+    // netProfit = 10,000 (below threshold) -> standard minimum = 0
+    // turnover minimum = 1% * 2,000,000 = 20,000
+    expect(result.minimumTax).toBe(20_000);
+    expect(result.finalTaxLiability).toBe(20_000);
+  });
+
+  it("falls back to the standard minimum tax when turnover minimum is lower", () => {
+    const result = calculateTax({
+      profile: baseProfile,
+      business: [
+        // netProfit 450,000 exceeds the 400,000 threshold, so the
+        // standard 5,000 minimum is in play; turnover minimum here
+        // (1% of 450,000 = 4,500) is lower, so standard should win.
+        { grossTurnover: 450_000, totalExpense: 0, tdsDeducted: 0, advanceTaxPaid: 0 },
+      ],
+    });
+    expect(result.totalTaxableIncome).toBeGreaterThan(400_000);
+    expect(result.minimumTax).toBe(5_000);
+  });
+
+  it("does NOT set off a business loss against other income, but still applies the turnover minimum tax", () => {
+    const result = calculateTax({
+      profile: baseProfile,
+      salaryIncome: {
+        basicSalary: 900_000, // taxable salary after exemption: 600,000
+        houseRentAllowance: 0,
+        medicalAllowance: 0,
+        conveyanceAllowance: 0,
+        festivalBonus: 0,
+        performanceBonus: 0,
+        otherAllowances: 0,
+        employerBenefits: 0,
+        providentFundIncome: 0,
+        gratuity: 0,
+        pension: 0,
+        otherEmploymentBenefits: 0,
+        tdsDeducted: 0,
+      },
+      business: [
+        // A loss: turnover 1,000,000 but expenses 1,500,000 -> -500,000,
+        // floored at 0 — must NOT reduce the salary income below.
+        { grossTurnover: 1_000_000, totalExpense: 1_500_000, tdsDeducted: 0, advanceTaxPaid: 0 },
+      ],
+    });
+    // combined = 600,000 (salary) + 0 (business loss, not subtracted)
+    expect(result.totalTaxableIncome).toBe(600_000);
+    // threshold 400,000 -> remaining 200,000 @10% = 20,000
+    expect(result.taxBeforeRebate).toBe(20_000);
+    // turnover minimum tax (1% of 1,000,000 = 10,000) is still checked,
+    // but 20,000 > 10,000 so it doesn't end up binding here
+    expect(result.finalTaxLiability).toBe(20_000);
+  });
+
+  it("still applies the turnover minimum tax on a standalone loss-making business with no other income", () => {
+    const result = calculateTax({
+      profile: baseProfile,
+      business: [
+        { grossTurnover: 100_000, totalExpense: 900_000, tdsDeducted: 0, advanceTaxPaid: 0 },
+      ],
+    });
+    // loss floored at 0, no other income -> taxable income 0
+    expect(result.totalTaxableIncome).toBe(0);
+    expect(result.taxBeforeRebate).toBe(0);
+    // turnover minimum still applies: 1% of 100,000 = 1,000
+    expect(result.minimumTax).toBe(1_000);
   });
 });

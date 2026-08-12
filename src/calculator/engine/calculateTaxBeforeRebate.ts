@@ -8,8 +8,9 @@ export interface ThresholdResolution {
 
 /**
  * A taxpayer can qualify for more than one threshold category at once
- * (e.g. a disabled female taxpayer). Per the owner's confirmed rule,
- * the engine always applies whichever qualifying threshold is highest.
+ * (e.g. a disabled female taxpayer, or a female freedom fighter). Per
+ * the owner's confirmed rule, the engine always applies whichever
+ * qualifying threshold is highest (most favorable to the taxpayer).
  */
 export function resolveThreshold(
   profile: TaxpayerProfile,
@@ -50,6 +51,10 @@ export interface TaxBeforeRebateResult {
   taxBeforeRebate: number;
 }
 
+/**
+ * Progressive slab tax above the resolved tax-free threshold, or a
+ * flat rate for non-residents.
+ */
 export function calculateTaxBeforeRebate(
   taxableIncome: number,
   profile: TaxpayerProfile,
