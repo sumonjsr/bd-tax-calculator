@@ -83,9 +83,29 @@ export interface BusinessIncome {
   advanceTaxPaid: number;
 }
 
+/** Agricultural income (Sections 38-44). A single object, not an
+ * array — the law computes crop income, lease rent, and allied
+ * business income together as one combined agricultural calculation
+ * per taxpayer, not per separate holding. */
 export interface AgriculturalIncome {
-  grossIncome: number;
-  allowableExpenses: number;
+  hasBooksOfAccounts: boolean;
+  cropSalesReceipts: number;
+  /** Only used when hasBooksOfAccounts is true. When false, the
+   * statutory 60%-of-receipts production cost applies instead. */
+  actualProductionCost: number;
+  /** No statutory 60% deduction applies to lease rent — only to
+   * income from crops the taxpayer actually cultivated. */
+  landLeaseRent: number;
+  landRevenuePaid: number;
+  loanInterestPaid: number;
+  insurancePremium: number;
+  depreciation: number;
+  irrigationMaintenanceExpense: number;
+  /** Allied agro-business income — each has its own exemption
+   * threshold before the excess is taxed at slab rates. */
+  fisheriesIncome: number;
+  poultryIncome: number;
+  dairyMushroomNurseryIncome: number;
   tdsDeducted: number;
 }
 
@@ -154,7 +174,7 @@ export interface TaxCalculationInput {
   salaryIncome?: SalaryIncome;
   houseProperty?: HousePropertyIncome[];
   business?: BusinessIncome[];
-  agricultural?: AgriculturalIncome[];
+  agricultural?: AgriculturalIncome;
   capitalGains?: CapitalGainTransaction[];
   financialAssets?: FinancialAssetIncome;
   otherSources?: OtherSourceIncome[];

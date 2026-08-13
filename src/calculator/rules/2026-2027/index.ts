@@ -141,6 +141,19 @@ const rules2026_2027: TaxRuleConfig = {
     minimumTaxRateOnTurnover: 0.01,
   },
 
+  agriculture: {
+    // Owner-supplied (Sections 38-44, Finance Act 2026, Sixth Schedule
+    // Part 1). Confirmed: all 5 deduction types in Sec 40(1)(b-g)
+    // apply (land revenue, loan interest, insurance, depreciation,
+    // irrigation maintenance) — not just the two in the original
+    // pseudo-code. Confirmed: Dairy/Mushroom/Nursery gets the same
+    // exemption treatment as Fisheries/Poultry, at a lower threshold.
+    noBooksProductionCostRate: 0.6,
+    soleAgricultureAdditionalExemption: 200_000,
+    fisheriesPoultryExemptionThreshold: 2_000_000,
+    dairyMushroomNurseryExemptionThreshold: 1_000_000,
+  },
+
   advanceTax: {
     liabilityThreshold: 600_000,
     installments: 4,

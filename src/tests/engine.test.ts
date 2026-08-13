@@ -25,12 +25,22 @@ describe("tax rule registry", () => {
 });
 
 describe("unsupported income categories", () => {
-  it("refuses to calculate when agricultural income is present", () => {
+  it("refuses to calculate when capital gains income is present", () => {
     const input: TaxCalculationInput = {
       profile: baseProfile,
-      agricultural: [{ grossIncome: 500_000, allowableExpenses: 0, tdsDeducted: 0 }],
+      capitalGains: [
+        {
+          assetType: "land",
+          acquisitionDate: "2020-01-01",
+          purchaseValue: 1_000_000,
+          improvementCost: 0,
+          sellingPrice: 1_500_000,
+          sellingExpenses: 0,
+          tdsDeducted: 0,
+        },
+      ],
     };
-    expect(() => calculateTax(input)).toThrow(/agricultural/i);
+    expect(() => calculateTax(input)).toThrow(/capital gains/i);
   });
 });
 
@@ -366,5 +376,123 @@ describe("business income (Sole Proprietorship)", () => {
     expect(result.taxBeforeRebate).toBe(0);
     // turnover minimum still applies: 1% of 100,000 = 1,000
     expect(result.minimumTax).toBe(1_000);
+  });
+});
+
+describe("agricultural income", () => {
+  it("applies the statutory 60% production cost when no books of accounts are kept", () => {
+    const result = calculateTax({
+      profile: baseProfile,
+      agricultural: {
+        hasBooksOfAccounts: false,
+        cropSalesReceipts: 1_000_000,
+        actualProductionCost: 0,
+        landLeaseRent: 0,
+        landRevenuePaid: 0,
+        loanInterestPaid: 0,
+        insurancePremium: 0,
+        depreciation: 0,
+        irrigationMaintenanceExpense: 0,
+        fisheriesIncome: 0,
+        poultryIncome: 0,
+        dairyMushroomNurseryIncome: 0,
+        tdsDeducted: 0,
+      },
+    });
+    // production cost = 60% * 1,000,000 = 600,000; net crop income = 400,000
+    // no other income -> agriculture-only extra exemption of 200,000 applies
+    // netCoreAgriIncome = max(400,000 - 200,000, 0) = 200,000
+    expect(result.totalTaxableIncome).toBe(200_000);
+  });
+
+  it("uses actual production cost when books of accounts are kept, and applies all 5 deductions", () => {
+    const result = calculateTax({
+      profile: baseProfile,
+      agricultural: {
+        hasBooksOfAccounts: true,
+        cropSalesReceipts: 1_000_000,
+        actualProductionCost: 300_000,
+        landLeaseRent: 100_000,
+        landRevenuePaid: 20_000,
+        loanInterestPaid: 30_000,
+        insurancePremium: 10_000,
+        depreciation: 15_000,
+        irrigationMaintenanceExpense: 25_000,
+        fisheriesIncome: 0,
+        poultryIncome: 0,
+        dairyMushroomNurseryIncome: 0,
+        tdsDeducted: 0,
+      },
+    });
+    // net crop income = 1,000,000 - 300,000 = 700,000
+    // + lease rent 100,000 = 800,000 gross
+    // - (20,000+30,000+10,000+15,000+25,000 = 100,000) = 700,000
+    // no other income -> - 200,000 extra exemption = 500,000
+    expect(result.totalTaxableIncome).toBe(500_000);
+  });
+
+  it("does NOT apply the extra 200,000 exemption when the taxpayer has other income", () => {
+    const result = calculateTax({
+      profile: baseProfile,
+      salaryIncome: {
+        basicSalary: 100_000,
+        houseRentAllowance: 0,
+        medicalAllowance: 0,
+        conveyanceAllowance: 0,
+        festivalBonus: 0,
+        performanceBonus: 0,
+        otherAllowances: 0,
+        employerBenefits: 0,
+        providentFundIncome: 0,
+        gratuity: 0,
+        pension: 0,
+        otherEmploymentBenefits: 0,
+        tdsDeducted: 0,
+      },
+      agricultural: {
+        hasBooksOfAccounts: true,
+        cropSalesReceipts: 1_000_000,
+        actualProductionCost: 300_000,
+        landLeaseRent: 0,
+        landRevenuePaid: 0,
+        loanInterestPaid: 0,
+        insurancePremium: 0,
+        depreciation: 0,
+        irrigationMaintenanceExpense: 0,
+        fisheriesIncome: 0,
+        poultryIncome: 0,
+        dairyMushroomNurseryIncome: 0,
+        tdsDeducted: 0,
+      },
+    });
+    // salary: gross 100,000, exempt min(33333.33, 500000) => taxable ~66,666.67
+    // agriculture: net crop 700,000, no extra exemption (has other income)
+    // combined ~766,666.67
+    expect(result.totalTaxableIncome).toBeCloseTo(766_666.67, 1);
+  });
+
+  it("applies separate exemption thresholds for fisheries/poultry vs dairy/mushroom/nursery", () => {
+    const result = calculateTax({
+      profile: baseProfile,
+      agricultural: {
+        hasBooksOfAccounts: true,
+        cropSalesReceipts: 0,
+        actualProductionCost: 0,
+        landLeaseRent: 0,
+        landRevenuePaid: 0,
+        loanInterestPaid: 0,
+        insurancePremium: 0,
+        depreciation: 0,
+        irrigationMaintenanceExpense: 0,
+        fisheriesIncome: 2_500_000, // 20,00,000 exempt -> 500,000 taxable
+        poultryIncome: 0,
+        dairyMushroomNurseryIncome: 1_200_000, // 10,00,000 exempt -> 200,000 taxable
+        tdsDeducted: 0,
+      },
+    });
+    // no core agri income; agriculture-only 200,000 exemption applies only
+    // to core income (already 0), not to allied business income
+    // taxable = 500,000 (fisheries) + 200,000 (dairy/mushroom/nursery) = 700,000
+    expect(result.totalTaxableIncome).toBe(700_000);
   });
 });

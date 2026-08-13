@@ -107,6 +107,22 @@ export interface TaxRuleConfig {
     minimumTaxRateOnTurnover: number;
   };
 
+  agriculture: {
+    /** Statutory production-cost deduction as a fraction of crop
+     * sales receipts, used only when the taxpayer has no books of
+     * accounts (Sec 40(1)(a)). */
+    noBooksProductionCostRate: number;
+    /** Extra exemption on core agricultural income when agriculture
+     * is the taxpayer's ONLY income head. */
+    soleAgricultureAdditionalExemption: number;
+    /** Exemption threshold for fisheries and poultry income
+     * (identical for both). */
+    fisheriesPoultryExemptionThreshold: number;
+    /** Exemption threshold for dairy, mushroom, and nursery income
+     * (identical for all three). */
+    dairyMushroomNurseryExemptionThreshold: number;
+  };
+
   advanceTax: {
     /** Advance tax required if estimated tax liability exceeds this
      * amount (BDT), payable in equal quarterly installments. */
