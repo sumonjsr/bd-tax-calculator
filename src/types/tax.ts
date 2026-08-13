@@ -109,14 +109,25 @@ export interface AgriculturalIncome {
   tdsDeducted: number;
 }
 
+export type CapitalGainAssetType =
+  | "real-estate"
+  | "listed-shares"
+  | "unlisted-shares"
+  | "govt-bond";
+
 export interface CapitalGainTransaction {
-  assetType: string;
-  acquisitionDate: string;
-  purchaseValue: number;
-  improvementCost: number;
-  sellingPrice: number;
-  sellingExpenses: number;
+  assetType: CapitalGainAssetType;
+  saleConsideration: number;
+  /** Real estate only — deed/mouza value. Deemed consideration is the
+   * higher of saleConsideration and this. */
+  mouzaValue?: number;
+  costOfAcquisition: number;
+  costOfImprovement: number;
+  transferExpenses: number;
+  holdingPeriodMonths: number;
   tdsDeducted: number;
+  /** Listed shares only — sponsor/director gets a different flat rate. */
+  isSponsorDirector?: boolean;
 }
 
 export interface FinancialAssetIncome {
@@ -209,6 +220,15 @@ export interface TaxCalculationResult {
   surcharge: number;
   surchargeNote?: string;
   minimumTax: number;
+  /** Regular tax through the minimum-tax comparison, before capital
+   * gains tax is added — kept for transparency about where capital
+   * gains sits in the pipeline. */
+  regularTaxBeforeCapitalGains: number;
+  /** Flat-rate capital gains tax (LTCG real estate, listed shares,
+   * and the long-term-unlisted-shares lower-of comparison) — computed
+   * separately and added directly to the regular tax, owner-confirmed
+   * to bypass rebate/surcharge/minimum-tax entirely. */
+  capitalGainsTax: number;
   finalTaxLiability: number;
   totalCreditsApplied: number;
   taxPayable: number;

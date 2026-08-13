@@ -123,6 +123,20 @@ export interface TaxRuleConfig {
     dairyMushroomNurseryExemptionThreshold: number;
   };
 
+  capitalGains: {
+    /** Holding period (months) strictly greater than this counts as
+     * long-term. */
+    longTermHoldingMonthsThreshold: number;
+    realEstateLongTermRate: number;
+    listedSharesSponsorDirectorRate: number;
+    listedSharesStandardRate: number;
+    /** Gain threshold (BDT) above which the excess is taxed at
+     * listedSharesExcessRate instead of listedSharesStandardRate. */
+    listedSharesStandardThreshold: number;
+    listedSharesExcessRate: number;
+    unlistedSharesLongTermFlatRate: number;
+  };
+
   advanceTax: {
     /** Advance tax required if estimated tax liability exceeds this
      * amount (BDT), payable in equal quarterly installments. */

@@ -154,6 +154,19 @@ const rules2026_2027: TaxRuleConfig = {
     dairyMushroomNurseryExemptionThreshold: 1_000_000,
   },
 
+  capitalGains: {
+    // Owner-supplied (Python spec). Confirmed: this whole category's
+    // flat-rate tax is computed separately and added to the regular
+    // tax after the minimum-tax comparison — see calculateTaxPayable.ts.
+    longTermHoldingMonthsThreshold: 60,
+    realEstateLongTermRate: 0.15,
+    listedSharesSponsorDirectorRate: 0.1,
+    listedSharesStandardRate: 0.15,
+    listedSharesStandardThreshold: 50_000_000, // 5 crore
+    listedSharesExcessRate: 0.25,
+    unlistedSharesLongTermFlatRate: 0.15,
+  },
+
   advanceTax: {
     liabilityThreshold: 600_000,
     installments: 4,

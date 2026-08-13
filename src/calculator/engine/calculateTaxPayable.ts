@@ -13,7 +13,12 @@ import { calculateAdvanceTaxCredit } from "./calculateAdvanceTaxCredit";
  * step-by-step explanation shown on the results screen.
  *
  * NOTE on surcharge base: computed on tax AFTER the investment rebate.
- * This is not yet confirmed with the owner — see calculateSurcharge.ts.
+ *
+ * Capital gains (owner-confirmed): the flat-rate capital gains tax
+ * (LTCG real estate, listed shares, and the long-term-unlisted-shares
+ * lower-of comparison) is computed entirely separately from the
+ * regular pipeline and added on top AFTER the minimum-tax comparison
+ * — it does not interact with rebate, surcharge, or minimum tax.
  */
 export function calculateTaxPayable(
   input: TaxCalculationInput,
@@ -47,7 +52,28 @@ export function calculateTaxPayable(
   );
   const applicableMinimumTax = minimumTaxResult.applicableMinimumTax;
 
-  const finalTaxLiability = Math.max(taxWithSurcharge, applicableMinimumTax);
+  const regularTaxBeforeCapitalGains = Math.max(taxWithSurcharge, applicableMinimumTax);
+
+  // Long-term unlisted shares: owner-confirmed "lower of" comparison.
+  // Step A — incremental slab tax: tax on (pool + this gain) minus tax
+  // on the pool alone (pool already includes short-term capital gains).
+  // Step B — flat 15% of the gain. Final: whichever is lower.
+  let longTermUnlistedSharesTax = 0;
+  if (income.longTermUnlistedShareGains > 0) {
+    const { taxBeforeRebate: taxWithLongTermUnlisted } = calculateTaxBeforeRebate(
+      income.totalTaxableIncome + income.longTermUnlistedShareGains,
+      input.profile,
+      rules,
+    );
+    const incrementalSlabTax = taxWithLongTermUnlisted - taxBeforeRebate;
+    const flatTax =
+      income.longTermUnlistedShareGains * rules.capitalGains.unlistedSharesLongTermFlatRate;
+    longTermUnlistedSharesTax = Math.min(incrementalSlabTax, flatTax);
+  }
+
+  const capitalGainsTax = income.flatRateCapitalGainsTax + longTermUnlistedSharesTax;
+
+  const finalTaxLiability = regularTaxBeforeCapitalGains + capitalGainsTax;
 
   const tdsCredit = calculateTDSCredit(income.totalTdsFromIncomeHeads, input.credits);
   const advanceTaxCredit =
@@ -80,6 +106,8 @@ export function calculateTaxPayable(
     surcharge: surcharge.surchargeAmount,
     surchargeNote: surcharge.note,
     minimumTax: applicableMinimumTax,
+    regularTaxBeforeCapitalGains,
+    capitalGainsTax,
     finalTaxLiability,
     totalCreditsApplied,
     taxPayable: Math.max(netPosition, 0),
@@ -101,12 +129,17 @@ export function calculateTaxPayable(
         note: `Eligible investment: ${eligibleInvestmentAmount}`,
       },
       { label: "Tax after rebate", amount: taxAfterRebate },
-      {
-        label: "Surcharge",
-        amount: surcharge.surchargeAmount,
-        note: surcharge.note,
-      },
+      { label: "Surcharge", amount: surcharge.surchargeAmount, note: surcharge.note },
       { label: "Minimum tax check", amount: applicableMinimumTax, note: minimumTaxResult.note },
+      { label: "Regular tax (before capital gains)", amount: regularTaxBeforeCapitalGains },
+      {
+        label: "Capital gains tax",
+        amount: capitalGainsTax,
+        note:
+          income.longTermUnlistedShareGains > 0
+            ? `Includes long-term unlisted shares: lower of incremental slab tax or 15% flat`
+            : undefined,
+      },
       { label: "Final tax liability", amount: finalTaxLiability },
       { label: "TDS credit", amount: -tdsCredit },
       { label: "Advance tax credit", amount: -advanceTaxCredit },

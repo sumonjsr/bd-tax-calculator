@@ -25,22 +25,12 @@ describe("tax rule registry", () => {
 });
 
 describe("unsupported income categories", () => {
-  it("refuses to calculate when capital gains income is present", () => {
+  it("refuses to calculate when other-sources income is present", () => {
     const input: TaxCalculationInput = {
       profile: baseProfile,
-      capitalGains: [
-        {
-          assetType: "land",
-          acquisitionDate: "2020-01-01",
-          purchaseValue: 1_000_000,
-          improvementCost: 0,
-          sellingPrice: 1_500_000,
-          sellingExpenses: 0,
-          tdsDeducted: 0,
-        },
-      ],
+      otherSources: [{ category: "royalty", amount: 100_000, tdsDeducted: 0 }],
     };
-    expect(() => calculateTax(input)).toThrow(/capital gains/i);
+    expect(() => calculateTax(input)).toThrow(/other sources/i);
   });
 });
 
@@ -494,5 +484,193 @@ describe("agricultural income", () => {
     // to core income (already 0), not to allied business income
     // taxable = 500,000 (fisheries) + 200,000 (dairy/mushroom/nursery) = 700,000
     expect(result.totalTaxableIncome).toBe(700_000);
+  });
+});
+
+describe("capital gains", () => {
+  it("exempts government bonds entirely but still credits TDS", () => {
+    const result = calculateTax({
+      profile: baseProfile,
+      capitalGains: [
+        {
+          assetType: "govt-bond",
+          saleConsideration: 1_000_000,
+          costOfAcquisition: 500_000,
+          costOfImprovement: 0,
+          transferExpenses: 0,
+          holdingPeriodMonths: 24,
+          tdsDeducted: 15_000,
+        },
+      ],
+    });
+    expect(result.totalTaxableIncome).toBe(0);
+    expect(result.capitalGainsTax).toBe(0);
+    expect(result.totalCreditsApplied).toBe(15_000);
+  });
+
+  it("uses the higher of sale consideration or mouza value for real estate, and applies flat 15% long-term", () => {
+    const result = calculateTax({
+      profile: baseProfile,
+      capitalGains: [
+        {
+          assetType: "real-estate",
+          saleConsideration: 15_000_000,
+          mouzaValue: 16_000_000,
+          costOfAcquisition: 8_000_000,
+          costOfImprovement: 1_000_000,
+          transferExpenses: 200_000,
+          holdingPeriodMonths: 72, // long-term
+          tdsDeducted: 800_000,
+        },
+      ],
+    });
+    // deemed consideration = max(15M, 16M) = 16,000,000
+    // cost = 8,000,000 + 1,000,000 + 200,000 = 9,200,000
+    // gain = 16,000,000 - 9,200,000 = 6,800,000
+    // flat 15% = 1,020,000; not merged into slab pool
+    expect(result.totalTaxableIncome).toBe(0);
+    expect(result.regularTaxBeforeCapitalGains).toBe(0);
+    expect(result.capitalGainsTax).toBe(1_020_000);
+    expect(result.finalTaxLiability).toBe(1_020_000);
+    expect(result.totalCreditsApplied).toBe(800_000);
+  });
+
+  it("merges short-term real estate gain into the regular slab pool", () => {
+    const result = calculateTax({
+      profile: baseProfile,
+      capitalGains: [
+        {
+          assetType: "real-estate",
+          saleConsideration: 1_500_000,
+          costOfAcquisition: 700_000,
+          costOfImprovement: 0,
+          transferExpenses: 0,
+          holdingPeriodMonths: 24, // short-term
+          tdsDeducted: 0,
+        },
+      ],
+    });
+    // gain = 1,500,000 - 700,000 = 800,000, merged into pool
+    // threshold 400,000 -> remaining 400,000: 300,000@10%=30,000; 100,000@15%=15,000 => 45,000
+    expect(result.totalTaxableIncome).toBe(800_000);
+    expect(result.taxBeforeRebate).toBe(45_000);
+    expect(result.capitalGainsTax).toBe(0); // fully in the regular pool, not separate
+  });
+
+  it("applies the sponsor/director flat 10% rate for listed shares", () => {
+    const result = calculateTax({
+      profile: baseProfile,
+      capitalGains: [
+        {
+          assetType: "listed-shares",
+          saleConsideration: 5_000_000,
+          costOfAcquisition: 3_000_000,
+          costOfImprovement: 0,
+          transferExpenses: 0,
+          holdingPeriodMonths: 12,
+          tdsDeducted: 0,
+          isSponsorDirector: true,
+        },
+      ],
+    });
+    // gain = 2,000,000; 10% = 200,000
+    expect(result.capitalGainsTax).toBe(200_000);
+  });
+
+  it("applies the tiered 15%/25% rate for large non-sponsor listed-share gains", () => {
+    const result = calculateTax({
+      profile: baseProfile,
+      capitalGains: [
+        {
+          assetType: "listed-shares",
+          saleConsideration: 70_000_000,
+          costOfAcquisition: 10_000_000,
+          costOfImprovement: 0,
+          transferExpenses: 0,
+          holdingPeriodMonths: 12,
+          tdsDeducted: 0,
+        },
+      ],
+    });
+    // gain = 60,000,000
+    // first 50,000,000 @15% = 7,500,000; remaining 10,000,000 @25% = 2,500,000
+    // total = 10,000,000
+    expect(result.capitalGainsTax).toBe(10_000_000);
+  });
+
+  it("picks the lower of flat 15% vs incremental slab tax for long-term unlisted shares", () => {
+    const result = calculateTax({
+      profile: baseProfile,
+      // Modest salary keeps the marginal slab rate at 10%, below the 15% flat rate
+      salaryIncome: {
+        basicSalary: 700_000, // taxable ~466,667
+        houseRentAllowance: 0,
+        medicalAllowance: 0,
+        conveyanceAllowance: 0,
+        festivalBonus: 0,
+        performanceBonus: 0,
+        otherAllowances: 0,
+        employerBenefits: 0,
+        providentFundIncome: 0,
+        gratuity: 0,
+        pension: 0,
+        otherEmploymentBenefits: 0,
+        tdsDeducted: 0,
+      },
+      capitalGains: [
+        {
+          assetType: "unlisted-shares",
+          saleConsideration: 1_200_000,
+          costOfAcquisition: 1_000_000,
+          costOfImprovement: 0,
+          transferExpenses: 0,
+          holdingPeriodMonths: 72, // long-term
+          tdsDeducted: 0,
+        },
+      ],
+    });
+    // gain = 200,000; flat 15% = 30,000
+    // salary taxable = 700,000 - min(233,333.33, 500,000) = 466,666.67
+    // pool without gain: remaining 66,666.67 @10% = 6,666.67
+    // pool with gain (+200,000 = 666,666.67): remaining 266,666.67 @10% = 26,666.67
+    // incremental = 26,666.67 - 6,666.67 = 20,000 < flat 30,000 -> incremental wins
+    expect(result.capitalGainsTax).toBeCloseTo(20_000, 0);
+  });
+
+  it("picks the flat 15% when incremental slab tax is higher (high marginal rate)", () => {
+    const result = calculateTax({
+      profile: baseProfile,
+      // Large salary pushes the marginal rate to 25%, above the flat 15%
+      salaryIncome: {
+        basicSalary: 5_000_000, // taxable = 5,000,000 - 500,000 = 4,500,000
+        houseRentAllowance: 0,
+        medicalAllowance: 0,
+        conveyanceAllowance: 0,
+        festivalBonus: 0,
+        performanceBonus: 0,
+        otherAllowances: 0,
+        employerBenefits: 0,
+        providentFundIncome: 0,
+        gratuity: 0,
+        pension: 0,
+        otherEmploymentBenefits: 0,
+        tdsDeducted: 0,
+      },
+      capitalGains: [
+        {
+          assetType: "unlisted-shares",
+          saleConsideration: 1_500_000,
+          costOfAcquisition: 1_000_000,
+          costOfImprovement: 0,
+          transferExpenses: 0,
+          holdingPeriodMonths: 72,
+          tdsDeducted: 0,
+        },
+      ],
+    });
+    // gain = 500,000; flat 15% = 75,000
+    // pool (4,500,000) is already deep in the 25% band, so the last
+    // 500,000 is taxed entirely at 25% -> incremental = 125,000
+    expect(result.capitalGainsTax).toBeCloseTo(75_000, 0);
   });
 });
