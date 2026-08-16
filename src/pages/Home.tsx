@@ -11,7 +11,11 @@ const incomeCategories = [
   "Foreign Income",
 ];
 
-export default function Home() {
+interface HomeProps {
+  onStartCalculator: () => void;
+}
+
+export default function Home({ onStartCalculator }: HomeProps) {
   return (
     <div>
       <section className="mx-auto grid max-w-6xl gap-12 px-6 py-20 sm:grid-cols-2 sm:items-center sm:py-28">
@@ -29,15 +33,14 @@ export default function Home() {
             number.
           </p>
           <div className="mt-8 flex flex-wrap items-center gap-4">
-            <span
-              className="inline-flex cursor-not-allowed items-center rounded-sm bg-ink px-6 py-3 text-sm font-medium text-paper opacity-50"
-              aria-disabled="true"
+            <button
+              type="button"
+              onClick={onStartCalculator}
+              className="inline-flex items-center rounded-sm bg-ink px-6 py-3 text-sm font-medium text-paper transition-opacity hover:opacity-90"
             >
-              Start calculator — coming soon
-            </span>
-            <span className="text-sm text-ink/50">
-              Foundation in progress · Phase 1
-            </span>
+              Start calculator
+            </button>
+            <span className="text-sm text-ink/50">Assessment Year 2026-2027</span>
           </div>
         </div>
 
@@ -50,8 +53,8 @@ export default function Home() {
         <div className="mx-auto max-w-6xl px-6 py-16">
           <h2 className="font-display text-2xl">Built for every income type</h2>
           <p className="mt-3 max-w-xl text-paper/70">
-            The calculator will support these categories from day one, each
-            with its own set of fields and rules.
+            The calculator supports these categories, each with its own set
+            of fields and rules.
           </p>
           <ul className="mt-8 grid grid-cols-2 gap-x-8 gap-y-4 text-sm text-paper/85 sm:grid-cols-4">
             {incomeCategories.map((category) => (
