@@ -161,6 +161,12 @@ export interface ForeignIncome {
   country: string;
   incomeType: string;
   grossAmount: number;
+  /** Whether this income was remitted into Bangladesh through a legal
+   * banking channel — fully exempt if true (owner-confirmed). If
+   * false, tax treatment is unconfigured and requires manual review. */
+  receivedViaLegalBankingChannel: boolean;
+  /** Foreign Tax Credit is unconfigured (owner-confirmed, DTAA-
+   * dependent) — this amount is tracked but never applied as a credit. */
   foreignTaxPaid: number;
 }
 

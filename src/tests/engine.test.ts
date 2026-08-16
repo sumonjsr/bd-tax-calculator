@@ -24,15 +24,21 @@ describe("tax rule registry", () => {
   });
 });
 
-describe("unsupported income categories", () => {
-  it("refuses to calculate when foreign income is present", () => {
+describe("foreign income requiring manual review", () => {
+  it("refuses to calculate when foreign income was not received via a legal banking channel", () => {
     const input: TaxCalculationInput = {
       profile: baseProfile,
       foreignIncome: [
-        { country: "UAE", incomeType: "salary", grossAmount: 500_000, foreignTaxPaid: 0 },
+        {
+          country: "UAE",
+          incomeType: "salary",
+          grossAmount: 500_000,
+          receivedViaLegalBankingChannel: false,
+          foreignTaxPaid: 0,
+        },
       ],
     };
-    expect(() => calculateTax(input)).toThrow(/foreign income/i);
+    expect(() => calculateTax(input)).toThrow(/manual tax evaluation/i);
   });
 });
 
@@ -726,5 +732,57 @@ describe("other sources income", () => {
     expect(result.finalTaxOtherSourcesIncome).toBe(300_000);
     expect(result.finalTaxOtherSourcesTdsDeducted).toBe(40_000);
     expect(result.advisoryNotes.some((n) => /final tax/i.test(n))).toBe(true);
+  });
+});
+
+describe("foreign income", () => {
+  it("fully exempts income remitted via a legal banking channel, for both resident and non-resident", () => {
+    const result = calculateTax({
+      profile: baseProfile,
+      salaryIncome: {
+        basicSalary: 900_000, // taxable 600,000
+        houseRentAllowance: 0,
+        medicalAllowance: 0,
+        conveyanceAllowance: 0,
+        festivalBonus: 0,
+        performanceBonus: 0,
+        otherAllowances: 0,
+        employerBenefits: 0,
+        providentFundIncome: 0,
+        gratuity: 0,
+        pension: 0,
+        otherEmploymentBenefits: 0,
+        tdsDeducted: 0,
+      },
+      foreignIncome: [
+        {
+          country: "UAE",
+          incomeType: "freelance",
+          grossAmount: 1_000_000,
+          receivedViaLegalBankingChannel: true,
+          foreignTaxPaid: 0,
+        },
+      ],
+    });
+    // Foreign income does not add to taxable income at all
+    expect(result.totalTaxableIncome).toBe(600_000);
+    expect(result.exemptIncome).toBe(1_000_000);
+  });
+
+  it("flags a disclaimer when foreign tax paid is entered, without applying it as a credit", () => {
+    const result = calculateTax({
+      profile: baseProfile,
+      foreignIncome: [
+        {
+          country: "USA",
+          incomeType: "consulting",
+          grossAmount: 500_000,
+          receivedViaLegalBankingChannel: true,
+          foreignTaxPaid: 50_000,
+        },
+      ],
+    });
+    expect(result.totalCreditsApplied).toBe(0); // foreignTaxPaid never applied as credit
+    expect(result.advisoryNotes.some((n) => /foreign tax credit/i.test(n))).toBe(true);
   });
 });

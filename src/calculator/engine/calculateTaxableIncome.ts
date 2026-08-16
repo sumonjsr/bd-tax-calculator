@@ -7,6 +7,7 @@ import { calculateBusinessIncome } from "./calculateBusinessIncome";
 import { calculateAgriculturalIncome } from "./calculateAgriculturalIncome";
 import { calculateCapitalGain } from "./calculateCapitalGain";
 import { calculateOtherIncome } from "./calculateOtherIncome";
+import { calculateForeignIncome } from "./calculateForeignIncome";
 
 export interface TaxableIncomeResult {
   grossIncome: number;
@@ -18,6 +19,8 @@ export interface TaxableIncomeResult {
   flatRateCapitalGainsTax: number;
   finalTaxOtherSourcesIncome: number;
   finalTaxOtherSourcesTdsDeducted: number;
+  exemptForeignIncome: number;
+  foreignIncomeAdvisoryNotes: string[];
   breakdown: {
     salary?: ReturnType<typeof calculateSalaryIncome>;
     houseProperty?: ReturnType<typeof calculateHousePropertyIncome>;
@@ -26,42 +29,23 @@ export interface TaxableIncomeResult {
     agricultural?: ReturnType<typeof calculateAgriculturalIncome>;
     capitalGains?: ReturnType<typeof calculateCapitalGain>;
     otherSources?: ReturnType<typeof calculateOtherIncome>;
+    foreignIncome?: ReturnType<typeof calculateForeignIncome>;
   };
 }
 
-const UNSUPPORTED_CATEGORIES: Array<[keyof TaxCalculationInput, string]> = [
-  ["foreignIncome", "Foreign income"],
-];
-
 /**
- * Aggregates taxable income across categories this engine has
- * confirmed rules for. Refuses to calculate if the input includes any
- * category whose tax treatment hasn't been supplied yet.
+ * Aggregates taxable income across every income category this engine
+ * has confirmed rules for.
  *
- * Other Sources: bank interest/dividend/casual income merge into the
- * general pool below. Sanchaypatra and lottery income are Final Tax
- * (owner-confirmed) — kept entirely out of the pool and out of the
- * credit/refund calculation; see calculateTaxPayable.ts for how they
- * surface as informational-only figures.
+ * Foreign income: owner-confirmed to be fully exempt when remitted via
+ * a legal banking channel — see calculateForeignIncome.ts, which
+ * itself refuses (throws) for any entry NOT received that way, since
+ * that treatment is unconfigured and needs manual review.
  */
 export function calculateTaxableIncome(
   input: TaxCalculationInput,
   rules: TaxRuleConfig,
 ): TaxableIncomeResult {
-  const unsupportedPresent = UNSUPPORTED_CATEGORIES.filter(([key]) => {
-    const value = input[key];
-    return Array.isArray(value) ? value.length > 0 : value != null;
-  });
-
-  if (unsupportedPresent.length > 0) {
-    const names = unsupportedPresent.map(([, label]) => label).join(", ");
-    throw new Error(
-      `Tax treatment for the following categories has not been supplied yet, ` +
-        `so they cannot be calculated: ${names}. Provide the applicable rules ` +
-        `before including this income.`,
-    );
-  }
-
   const salary = input.salaryIncome
     ? calculateSalaryIncome(input.salaryIncome, rules)
     : undefined;
@@ -88,6 +72,10 @@ export function calculateTaxableIncome(
 
   const otherSources = input.otherSources?.length
     ? calculateOtherIncome(input.otherSources)
+    : undefined;
+
+  const foreignIncome = input.foreignIncome?.length
+    ? calculateForeignIncome(input.foreignIncome)
     : undefined;
 
   const grossIncome =
@@ -129,6 +117,8 @@ export function calculateTaxableIncome(
     flatRateCapitalGainsTax: capitalGains?.flatRateCapitalGainsTax ?? 0,
     finalTaxOtherSourcesIncome: otherSources?.finalTaxIncome ?? 0,
     finalTaxOtherSourcesTdsDeducted: otherSources?.finalTaxDeducted ?? 0,
+    exemptForeignIncome: foreignIncome?.exemptForeignIncome ?? 0,
+    foreignIncomeAdvisoryNotes: foreignIncome?.advisoryNotes ?? [],
     breakdown: {
       salary,
       houseProperty,
@@ -137,6 +127,7 @@ export function calculateTaxableIncome(
       agricultural,
       capitalGains,
       otherSources,
+      foreignIncome,
     },
   };
 }

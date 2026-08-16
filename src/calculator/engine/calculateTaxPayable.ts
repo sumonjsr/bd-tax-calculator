@@ -100,11 +100,12 @@ export function calculateTaxPayable(
         `or refundable against the rest of your tax liability.`,
     );
   }
+  advisoryNotes.push(...income.foreignIncomeAdvisoryNotes);
 
   return {
     assessmentYear: rules.assessmentYear,
     grossIncome: income.grossIncome,
-    exemptIncome: input.exemptIncome ?? 0,
+    exemptIncome: (input.exemptIncome ?? 0) + income.exemptForeignIncome,
     totalTaxableIncome: income.totalTaxableIncome,
     thresholdCategoryApplied: thresholdApplied.category,
     taxFreeThresholdApplied: thresholdApplied.threshold,
