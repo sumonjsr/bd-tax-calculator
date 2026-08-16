@@ -6,6 +6,7 @@ import { calculateFinancialAssetIncome } from "./calculateFinancialAssetIncome";
 import { calculateBusinessIncome } from "./calculateBusinessIncome";
 import { calculateAgriculturalIncome } from "./calculateAgriculturalIncome";
 import { calculateCapitalGain } from "./calculateCapitalGain";
+import { calculateOtherIncome } from "./calculateOtherIncome";
 
 export interface TaxableIncomeResult {
   grossIncome: number;
@@ -15,6 +16,8 @@ export interface TaxableIncomeResult {
   businessGrossTurnover: number;
   longTermUnlistedShareGains: number;
   flatRateCapitalGainsTax: number;
+  finalTaxOtherSourcesIncome: number;
+  finalTaxOtherSourcesTdsDeducted: number;
   breakdown: {
     salary?: ReturnType<typeof calculateSalaryIncome>;
     houseProperty?: ReturnType<typeof calculateHousePropertyIncome>;
@@ -22,27 +25,24 @@ export interface TaxableIncomeResult {
     business?: ReturnType<typeof calculateBusinessIncome>;
     agricultural?: ReturnType<typeof calculateAgriculturalIncome>;
     capitalGains?: ReturnType<typeof calculateCapitalGain>;
+    otherSources?: ReturnType<typeof calculateOtherIncome>;
   };
 }
 
 const UNSUPPORTED_CATEGORIES: Array<[keyof TaxCalculationInput, string]> = [
-  ["otherSources", "Other sources of income"],
   ["foreignIncome", "Foreign income"],
 ];
 
 /**
  * Aggregates taxable income across categories this engine has
- * confirmed rules for (salary, house property, financial assets,
- * Sole Proprietorship business, agriculture, capital gains). Refuses
- * to calculate if the input includes any category whose tax treatment
- * hasn't been supplied yet.
+ * confirmed rules for. Refuses to calculate if the input includes any
+ * category whose tax treatment hasn't been supplied yet.
  *
- * Capital gains: short-term real estate and short-term unlisted
- * shares merge into the general pool below (owner-confirmed). Long-
- * term unlisted shares and the already-resolved flat-rate items
- * (LTCG real estate, listed shares) do NOT merge in — they're passed
- * through for calculateTaxPayable.ts to add separately after the
- * minimum-tax comparison (owner-confirmed).
+ * Other Sources: bank interest/dividend/casual income merge into the
+ * general pool below. Sanchaypatra and lottery income are Final Tax
+ * (owner-confirmed) — kept entirely out of the pool and out of the
+ * credit/refund calculation; see calculateTaxPayable.ts for how they
+ * surface as informational-only figures.
  */
 export function calculateTaxableIncome(
   input: TaxCalculationInput,
@@ -86,13 +86,18 @@ export function calculateTaxableIncome(
     ? calculateCapitalGain(input.capitalGains, rules)
     : undefined;
 
+  const otherSources = input.otherSources?.length
+    ? calculateOtherIncome(input.otherSources)
+    : undefined;
+
   const grossIncome =
     (salary?.grossSalary ?? 0) +
     (houseProperty?.totalTaxableIncome ?? 0) +
     (financialAssets?.totalTaxableIncome ?? 0) +
     (business?.taxableProfit ?? 0) +
     (agricultural?.totalTaxableAgriIncome ?? 0) +
-    (capitalGains?.shortTermPoolAddition ?? 0);
+    (capitalGains?.shortTermPoolAddition ?? 0) +
+    (otherSources?.regularPoolAddition ?? 0);
 
   const totalTaxableIncome =
     (salary?.taxableSalary ?? 0) +
@@ -100,7 +105,8 @@ export function calculateTaxableIncome(
     (financialAssets?.totalTaxableIncome ?? 0) +
     (business?.taxableProfit ?? 0) +
     (agricultural?.totalTaxableAgriIncome ?? 0) +
-    (capitalGains?.shortTermPoolAddition ?? 0);
+    (capitalGains?.shortTermPoolAddition ?? 0) +
+    (otherSources?.regularPoolAddition ?? 0);
 
   const totalTdsFromIncomeHeads =
     (salary?.tdsDeducted ?? 0) +
@@ -108,7 +114,8 @@ export function calculateTaxableIncome(
     (financialAssets?.totalTdsDeducted ?? 0) +
     (business?.tdsDeducted ?? 0) +
     (agricultural?.tdsDeducted ?? 0) +
-    (capitalGains?.tdsDeducted ?? 0);
+    (capitalGains?.tdsDeducted ?? 0) +
+    (otherSources?.adjustableTdsCredit ?? 0);
 
   const totalAdvanceTaxFromIncomeHeads = business?.advanceTaxPaid ?? 0;
 
@@ -120,6 +127,16 @@ export function calculateTaxableIncome(
     businessGrossTurnover: business?.grossTurnover ?? 0,
     longTermUnlistedShareGains: capitalGains?.longTermUnlistedShareGains ?? 0,
     flatRateCapitalGainsTax: capitalGains?.flatRateCapitalGainsTax ?? 0,
-    breakdown: { salary, houseProperty, financialAssets, business, agricultural, capitalGains },
+    finalTaxOtherSourcesIncome: otherSources?.finalTaxIncome ?? 0,
+    finalTaxOtherSourcesTdsDeducted: otherSources?.finalTaxDeducted ?? 0,
+    breakdown: {
+      salary,
+      houseProperty,
+      financialAssets,
+      business,
+      agricultural,
+      capitalGains,
+      otherSources,
+    },
   };
 }

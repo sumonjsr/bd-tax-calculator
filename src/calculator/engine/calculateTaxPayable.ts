@@ -92,6 +92,14 @@ export function calculateTaxPayable(
         "and is not included in the figures above — rate not yet configured.",
     );
   }
+  if (income.finalTaxOtherSourcesIncome > 0) {
+    advisoryNotes.push(
+      `Sanchaypatra/lottery income (BDT ${income.finalTaxOtherSourcesIncome.toLocaleString("en-BD")}) ` +
+        `is taxed as Final Tax u/s 163 — its TDS (BDT ${income.finalTaxOtherSourcesTdsDeducted.toLocaleString("en-BD")}) ` +
+        `is not included in total taxable income, credits, or refund above, and is not adjustable ` +
+        `or refundable against the rest of your tax liability.`,
+    );
+  }
 
   return {
     assessmentYear: rules.assessmentYear,
@@ -114,6 +122,8 @@ export function calculateTaxPayable(
     refundDue: Math.max(-netPosition, 0),
     advanceTaxInstallmentRequired: finalTaxLiability > rules.advanceTax.liabilityThreshold,
     advisoryNotes,
+    finalTaxOtherSourcesIncome: income.finalTaxOtherSourcesIncome,
+    finalTaxOtherSourcesTdsDeducted: income.finalTaxOtherSourcesTdsDeducted,
     steps: [
       { label: "Gross income", amount: income.grossIncome },
       { label: "Total taxable income", amount: income.totalTaxableIncome },

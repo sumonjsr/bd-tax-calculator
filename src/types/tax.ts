@@ -141,9 +141,19 @@ export interface FinancialAssetIncome {
   tdsDeducted: number;
 }
 
+export type OtherSourceCategory =
+  | "bank-interest"
+  | "dividend"
+  | "sanchaypatra"
+  | "lottery"
+  | "other-regular";
+
 export interface OtherSourceIncome {
-  category: string;
-  amount: number;
+  category: OtherSourceCategory;
+  grossAmount: number;
+  /** Only meaningful for "bank-interest" — bank charges/commission
+   * deducted from the income (Sec 68). */
+  bankChargesPaid?: number;
   tdsDeducted: number;
 }
 
@@ -240,5 +250,10 @@ export interface TaxCalculationResult {
    * which is a separate per-vehicle tax this engine does not compute
    * (no rate supplied yet) but which may still apply to the taxpayer. */
   advisoryNotes: string[];
+  /** Sanchaypatra profit + lottery/prize winnings — Final Tax u/s 163.
+   * Informational only: NOT included in totalTaxableIncome, and its
+   * TDS is NOT part of totalCreditsApplied/taxPayable/refundDue. */
+  finalTaxOtherSourcesIncome: number;
+  finalTaxOtherSourcesTdsDeducted: number;
   steps: TaxCalculationStep[];
 }

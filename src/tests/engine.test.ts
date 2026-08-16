@@ -25,12 +25,14 @@ describe("tax rule registry", () => {
 });
 
 describe("unsupported income categories", () => {
-  it("refuses to calculate when other-sources income is present", () => {
+  it("refuses to calculate when foreign income is present", () => {
     const input: TaxCalculationInput = {
       profile: baseProfile,
-      otherSources: [{ category: "royalty", amount: 100_000, tdsDeducted: 0 }],
+      foreignIncome: [
+        { country: "UAE", incomeType: "salary", grossAmount: 500_000, foreignTaxPaid: 0 },
+      ],
     };
-    expect(() => calculateTax(input)).toThrow(/other sources/i);
+    expect(() => calculateTax(input)).toThrow(/foreign income/i);
   });
 });
 
@@ -672,5 +674,57 @@ describe("capital gains", () => {
     // pool (4,500,000) is already deep in the 25% band, so the last
     // 500,000 is taxed entirely at 25% -> incremental = 125,000
     expect(result.capitalGainsTax).toBeCloseTo(75_000, 0);
+  });
+});
+
+describe("other sources income", () => {
+  it("merges bank interest (net of charges), dividend, and casual income into the regular pool with adjustable TDS", () => {
+    const result = calculateTax({
+      profile: baseProfile,
+      otherSources: [
+        { category: "bank-interest", grossAmount: 100_000, bankChargesPaid: 500, tdsDeducted: 10_000 },
+        { category: "dividend", grossAmount: 50_000, tdsDeducted: 5_000 },
+        { category: "other-regular", grossAmount: 30_000, tdsDeducted: 0 },
+      ],
+    });
+    // pool = (100,000-500) + 50,000 + 30,000 = 179,500
+    expect(result.totalTaxableIncome).toBe(179_500);
+    expect(result.totalCreditsApplied).toBe(15_000); // 10,000 + 5,000
+    expect(result.taxBeforeRebate).toBe(0); // below threshold
+  });
+
+  it("excludes Sanchaypatra and lottery income entirely, and never credits or refunds their TDS", () => {
+    const result = calculateTax({
+      profile: baseProfile,
+      salaryIncome: {
+        basicSalary: 900_000, // taxable 600,000
+        houseRentAllowance: 0,
+        medicalAllowance: 0,
+        conveyanceAllowance: 0,
+        festivalBonus: 0,
+        performanceBonus: 0,
+        otherAllowances: 0,
+        employerBenefits: 0,
+        providentFundIncome: 0,
+        gratuity: 0,
+        pension: 0,
+        otherEmploymentBenefits: 0,
+        tdsDeducted: 0,
+      },
+      otherSources: [
+        { category: "sanchaypatra", grossAmount: 200_000, tdsDeducted: 20_000 },
+        { category: "lottery", grossAmount: 100_000, tdsDeducted: 20_000 },
+      ],
+    });
+    // Sanchaypatra/lottery income and TDS must NOT appear in the
+    // regular figures at all — only salary drives these.
+    expect(result.totalTaxableIncome).toBe(600_000);
+    expect(result.taxBeforeRebate).toBe(20_000); // 200,000 @10% on the 400k-threshold slab
+    expect(result.totalCreditsApplied).toBe(0); // no adjustable TDS from salary here
+    expect(result.taxPayable).toBe(20_000);
+    // reported separately, informational only
+    expect(result.finalTaxOtherSourcesIncome).toBe(300_000);
+    expect(result.finalTaxOtherSourcesTdsDeducted).toBe(40_000);
+    expect(result.advisoryNotes.some((n) => /final tax/i.test(n))).toBe(true);
   });
 });
