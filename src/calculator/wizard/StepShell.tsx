@@ -20,7 +20,7 @@ export default function StepShell({
   children,
   onBack,
   onNext,
-  nextLabel = "Continue",
+  nextLabel = "চালিয়ে যান",
   nextDisabled = false,
 }: StepShellProps) {
   return (
@@ -35,7 +35,7 @@ export default function StepShell({
           ))}
         </div>
         <p className="mt-3 font-data text-xs uppercase tracking-wider text-ink/50">
-          Step {stepIndex + 1} of {totalSteps}
+          ধাপ {stepIndex + 1} / {totalSteps}
         </p>
       </div>
 
@@ -51,7 +51,7 @@ export default function StepShell({
             onClick={onBack}
             className="text-sm font-medium text-ink/60 hover:text-ink"
           >
-            ← Back
+            ← পেছনে
           </button>
         ) : (
           <span />

@@ -27,91 +27,91 @@ export default function ProfileStep({
     <StepShell
       stepIndex={stepIndex}
       totalSteps={totalSteps}
-      title="Tell us about yourself"
-      description="Assessment Year 2026-2027 (Income Year 2025-2026). This decides which tax-free threshold and rules apply to you."
+      title="আপনার সম্পর্কে জানান"
+      description="কর নির্ধারণী বছর ২০২৬-২০২৭ (আয় বছর ২০২৫-২০২৬)। এটি অনুযায়ী আপনার করমুক্ত সীমা ও প্রযোজ্য নিয়ম নির্ধারিত হবে।"
       onNext={onNext}
     >
-      <FormSection title="Basics">
-        <NumberField id="age" label="Age" value={profile.age} prefix="" onChange={(v) => set("age", v)} />
+      <FormSection title="মৌলিক তথ্য">
+        <NumberField id="age" label="বয়স" value={profile.age} prefix="" onChange={(v) => set("age", v)} />
         <SelectField
           id="gender"
-          label="Gender"
+          label="লিঙ্গ"
           value={profile.gender ?? "prefer-not-to-say"}
           onChange={(v) => set("gender", v)}
           options={[
-            { value: "male", label: "Male" },
-            { value: "female", label: "Female" },
-            { value: "third-gender", label: "Third gender" },
-            { value: "prefer-not-to-say", label: "Prefer not to say" },
+            { value: "male", label: "পুরুষ" },
+            { value: "female", label: "নারী" },
+            { value: "third-gender", label: "তৃতীয় লিঙ্গ" },
+            { value: "prefer-not-to-say", label: "বলতে চাই না" },
           ]}
         />
         <SelectField
           id="residentialStatus"
-          label="Residential status"
+          label="আবাসিক অবস্থা"
           value={profile.residentialStatus ?? "resident"}
           onChange={(v) => set("residentialStatus", v)}
           options={[
-            { value: "resident", label: "Resident" },
-            { value: "non-resident", label: "Non-resident" },
+            { value: "resident", label: "আবাসিক (Resident)" },
+            { value: "non-resident", label: "অনাবাসী (Non-resident)" },
           ]}
         />
       </FormSection>
 
       <FormSection
-        title="Special categories"
-        description="These can raise your tax-free threshold — we'll apply whichever gives you the best result."
+        title="বিশেষ শ্রেণি"
+        description="এগুলোর কারণে আপনার করমুক্ত সীমা বাড়তে পারে — যেটা আপনার জন্য বেশি সুবিধাজনক সেটাই প্রয়োগ করব।"
       >
         <ToggleField
           id="isDisabled"
-          label="Person with disability"
+          label="প্রতিবন্ধী ব্যক্তি"
           checked={profile.isDisabled ?? false}
           onChange={(v) => set("isDisabled", v)}
         />
         <ToggleField
           id="isFreedomFighter"
-          label="Gazetted war-wounded freedom fighter / July fighter"
+          label="গেজেটেড যুদ্ধাহত মুক্তিযোদ্ধা / জুলাই যোদ্ধা"
           checked={profile.isFreedomFighter ?? false}
           onChange={(v) => set("isFreedomFighter", v)}
         />
         <NumberField
           id="disabledChildrenCount"
-          label="Number of disabled children you're the guardian of"
+          label="আপনার অভিভাবকত্বে থাকা প্রতিবন্ধী সন্তানের সংখ্যা"
           prefix=""
           value={profile.disabledChildrenCount ?? 0}
           onChange={(v) => set("disabledChildrenCount", v)}
-          hint="Adds BDT 50,000 to your tax-free threshold per child."
+          hint="প্রতি সন্তানের জন্য করমুক্ত সীমায় অতিরিক্ত ৫০,০০০ টাকা যোগ হবে।"
         />
       </FormSection>
 
-      <FormSection title="Filing details">
+      <FormSection title="রিটার্ন সংক্রান্ত তথ্য">
         <ToggleField
           id="hasTin"
-          label="I have a TIN"
+          label="আমার TIN আছে"
           checked={profile.hasTin}
           onChange={(v) => set("hasTin", v)}
         />
         <ToggleField
           id="isFirstTimeFiler"
-          label="This is my first time filing a return"
+          label="আমি প্রথমবার রিটার্ন দাখিল করছি"
           checked={profile.isFirstTimeFiler ?? false}
           onChange={(v) => set("isFirstTimeFiler", v)}
         />
       </FormSection>
 
       <FormSection
-        title="Wealth (optional)"
-        description="Only needed if your net wealth might trigger the wealth surcharge."
+        title="সম্পদ (ঐচ্ছিক)"
+        description="সারচার্জ প্রযোজ্য হতে পারে এমন ক্ষেত্রেই শুধু এটা লাগবে।"
       >
         <NumberField
           id="netWealth"
-          label="Net wealth"
+          label="নিট সম্পদ"
           value={profile.netWealth ?? 0}
           onChange={(v) => set("netWealth", v)}
-          hint="Surcharge only applies above BDT 4 crore."
+          hint="৪ কোটি টাকার বেশি হলেই কেবল সারচার্জ প্রযোজ্য হয়।"
         />
         <NumberField
           id="motorVehicleCount"
-          label="Number of motor vehicles you own"
+          label="আপনার মোটরযানের সংখ্যা"
           prefix=""
           value={profile.motorVehicleCount ?? 0}
           onChange={(v) => set("motorVehicleCount", v)}

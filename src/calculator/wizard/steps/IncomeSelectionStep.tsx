@@ -30,8 +30,8 @@ export default function IncomeSelectionStep({
     <StepShell
       stepIndex={stepIndex}
       totalSteps={totalSteps}
-      title="Which income do you have?"
-      description="Select everything that applies. You'll only fill in forms for what you pick."
+      title="আপনার কোন কোন আয় আছে?"
+      description="যা যা প্রযোজ্য সব বাছাই করুন। শুধু যেগুলো বাছবেন সেগুলোর ফর্মই পূরণ করতে হবে।"
       onBack={onBack}
       onNext={onNext}
       nextDisabled={selected.length === 0}
@@ -58,7 +58,7 @@ export default function IncomeSelectionStep({
               </span>
               {!isImplemented && (
                 <span className="rounded-full bg-sage/20 px-2 py-0.5 text-xs text-ink/60">
-                  Coming soon
+                  শীঘ্রই আসছে
                 </span>
               )}
             </label>

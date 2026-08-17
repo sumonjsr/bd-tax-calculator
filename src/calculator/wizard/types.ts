@@ -21,14 +21,14 @@ export type IncomeCategoryKey =
   | "foreignIncome";
 
 export const INCOME_CATEGORY_LABELS: Record<IncomeCategoryKey, string> = {
-  salary: "Salary / Employment",
-  houseProperty: "House Property",
-  business: "Business / Profession",
-  agricultural: "Agricultural Income",
-  capitalGains: "Capital Gains",
-  financialAssets: "Financial Assets",
-  otherSources: "Other Sources",
-  foreignIncome: "Foreign Income",
+  salary: "বেতন / চাকরি",
+  houseProperty: "গৃহসম্পত্তি",
+  business: "ব্যবসা / পেশা",
+  agricultural: "কৃষি আয়",
+  capitalGains: "মূলধনী মুনাফা",
+  financialAssets: "আর্থিক সম্পদ",
+  otherSources: "অন্যান্য উৎস",
+  foreignIncome: "বৈদেশিক আয়",
 };
 
 /** Categories with a working step form. Others show a "coming soon"

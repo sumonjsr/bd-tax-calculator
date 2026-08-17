@@ -17,12 +17,12 @@ interface InvestmentRebateStepProps {
 }
 
 const CATEGORY_OPTIONS: Array<{ value: InvestmentRebateCategory; label: string }> = [
-  { value: "life-insurance", label: "Life insurance premium" },
-  { value: "dps", label: "Deposit Pension Scheme (DPS)" },
-  { value: "government-securities-sanchayapatra", label: "Government securities / Sanchayapatra" },
-  { value: "listed-securities", label: "Listed stocks, mutual funds, or debentures" },
-  { value: "gpf-rpf", label: "GPF / Recognized Provident Fund" },
-  { value: "universal-pension-scheme", label: "Universal Pension Scheme" },
+  { value: "life-insurance", label: "জীবন বীমার প্রিমিয়াম" },
+  { value: "dps", label: "ডিপোজিট পেনশন স্কিম (DPS)" },
+  { value: "government-securities-sanchayapatra", label: "সরকারি সিকিউরিটিজ / সঞ্চয়পত্র" },
+  { value: "listed-securities", label: "তালিকাভুক্ত শেয়ার, মিউচুয়াল ফান্ড বা ডিবেঞ্চার" },
+  { value: "gpf-rpf", label: "GPF / স্বীকৃত ভবিষ্য তহবিল" },
+  { value: "universal-pension-scheme", label: "সর্বজনীন পেনশন স্কিম" },
 ];
 
 export default function InvestmentRebateStep({
@@ -49,40 +49,40 @@ export default function InvestmentRebateStep({
     <StepShell
       stepIndex={stepIndex}
       totalSteps={totalSteps}
-      title="Investment tax rebate"
-      description="List investments that qualify for a rebate. Skip this if you don't have any — it's optional."
+      title="বিনিয়োগ কর রেয়াত"
+      description="যেসব বিনিয়োগ রেয়াতের জন্য যোগ্য সেগুলো তালিকাভুক্ত করুন। কোনো বিনিয়োগ না থাকলে এই ধাপ বাদ দিতে পারেন — এটা ঐচ্ছিক।"
       onBack={onBack}
       onNext={onNext}
     >
       {items.length === 0 && (
         <p className="rounded-sm border border-dashed border-sage/40 px-4 py-6 text-center text-sm text-ink/50">
-          No investments added yet.
+          এখনো কোনো বিনিয়োগ যোগ করা হয়নি।
         </p>
       )}
 
       <div className="space-y-4">
         {items.map((item, index) => (
-          <FormSection key={index} title={`Investment ${index + 1}`}>
+          <FormSection key={index} title={`বিনিয়োগ ${index + 1}`}>
             <SelectField
               id={`rebate-category-${index}`}
-              label="Category"
+              label="খাত"
               value={item.category}
               onChange={(v) => updateItem(index, { category: v })}
               options={CATEGORY_OPTIONS}
             />
             <NumberField
               id={`rebate-amount-${index}`}
-              label="Amount invested this year"
+              label="এই বছর বিনিয়োগকৃত অঙ্ক"
               value={item.amount}
               onChange={(v) => updateItem(index, { amount: v })}
             />
             {item.category === "life-insurance" && (
               <NumberField
                 id={`rebate-sum-assured-${index}`}
-                label="Policy sum assured"
+                label="পলিসির সাম অ্যাসিওরড (Sum Assured)"
                 value={item.sumAssured ?? 0}
                 onChange={(v) => updateItem(index, { sumAssured: v })}
-                hint="Eligible premium is capped at 10% of sum assured."
+                hint="যোগ্য প্রিমিয়াম সাম অ্যাসিওরডের ১০%-এ সীমাবদ্ধ।"
               />
             )}
             <button
@@ -90,7 +90,7 @@ export default function InvestmentRebateStep({
               onClick={() => removeItem(index)}
               className="text-sm text-brick hover:underline"
             >
-              Remove
+              মুছে ফেলুন
             </button>
           </FormSection>
         ))}
@@ -101,7 +101,7 @@ export default function InvestmentRebateStep({
         onClick={addItem}
         className="w-full rounded-sm border border-dashed border-sage/40 py-3 text-sm font-medium text-ink/70 hover:border-gold hover:text-ink"
       >
-        + Add an investment
+        + বিনিয়োগ যোগ করুন
       </button>
     </StepShell>
   );

@@ -27,27 +27,27 @@ export default function CreditsStep({
     <StepShell
       stepIndex={stepIndex}
       totalSteps={totalSteps}
-      title="Any other tax already paid?"
-      description="TDS you already entered on income forms is counted automatically — this is for anything extra, like contract TDS."
+      title="আর কোনো কর ইতিমধ্যে পরিশোধ করেছেন?"
+      description="আয়ের ফর্মে যে TDS আগেই লিখেছেন সেটা এমনিতেই হিসাবে চলে আসবে — এখানে শুধু বাড়তি কিছু থাকলে দিন, যেমন কন্ট্রাক্ট TDS।"
       onBack={onBack}
       onNext={onNext}
     >
-      <FormSection title="Additional credits">
+      <FormSection title="বাড়তি ক্রেডিট">
         <NumberField
           id="totalTdsDeducted"
-          label="Other TDS not already entered elsewhere"
+          label="অন্য কোথাও না লেখা TDS"
           value={credits.totalTdsDeducted}
           onChange={(v) => set("totalTdsDeducted", v)}
         />
         <NumberField
           id="advanceTaxPaid"
-          label="Advance tax paid"
+          label="পরিশোধিত অগ্রিম কর"
           value={credits.advanceTaxPaid}
           onChange={(v) => set("advanceTaxPaid", v)}
         />
         <NumberField
           id="otherEligibleCredits"
-          label="Other eligible tax credits"
+          label="অন্যান্য যোগ্য কর ক্রেডিট"
           value={credits.otherEligibleCredits}
           onChange={(v) => set("otherEligibleCredits", v)}
         />

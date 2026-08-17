@@ -20,10 +20,10 @@ export default function TaxSlabLadder() {
     <svg
       viewBox="0 0 340 260"
       role="img"
-      aria-label="Illustration of ascending, progressively taxed income slabs"
+      aria-label="ক্রমান্বয়ে বৃদ্ধি পাওয়া, ধাপে ধাপে কর ধার্য হওয়া আয়ের ইলাস্ট্রেশন"
       className="w-full max-w-sm"
     >
-      <title>Progressive tax slabs, illustrated as ascending steps</title>
+      <title>প্রগতিশীল কর স্ল্যাব, সিঁড়ির আকারে দেখানো হয়েছে</title>
       {steps.map((step, i) => {
         const stepHeight = 34;
         const y = 260 - (i + 1) * stepHeight;
